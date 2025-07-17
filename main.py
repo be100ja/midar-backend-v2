@@ -4,6 +4,14 @@ from uuid import uuid4
 from typing import List
 import shutil
 import os
+from db import engine
+from models.paciente import Base as PacienteBase
+from models.examen import Base as ExamenBase
+
+# Crear tablas automáticamente en la base de datos
+PacienteBase.metadata.create_all(bind=engine)
+ExamenBase.metadata.create_all(bind=engine)
+
 
 app = FastAPI()
 
