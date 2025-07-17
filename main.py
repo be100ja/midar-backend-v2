@@ -49,24 +49,47 @@ def login(email: str = Form(...), password: str = Form(...)):
         "nombre": usuarios[email]["nombre"]
     }
 
-# 👤 Crear paciente
-@app.post("/pacientes")
-def crear_paciente(nombre: str = Form(...), rut: str = Form(...), fecha_nac: str = Form(...), doctor_id: str = Form(...)):
-    paciente_id = str(uuid4())
-    pacientes[paciente_id] = {
-        "id": paciente_id,
-        "nombre": nombre,
-        "rut": rut,
-        "fecha_nac": fecha_nac,
-        "doctor_id": doctor_id
-    }
-    return {"mensaje": "Paciente creado", "id": paciente_id}
+from models.paciente import Paciente, SexoEnum
+from sqlalchemy.orm import Session
+from db import SessionLocal
 
-# 📂 Obtener pacientes de un doctor
+@app.post("/pacientes")
+def crear_paciente(
+    nombre: str = Form(...),
+    rut: str = Form(...),
+    fecha_nac: str = Form(...),
+    sexo: SexoEnum = Form(...),
+    doctor_id: str = Form(...)
+):
+    db: Session = SessionLocal()
+    nuevo = Paciente(
+        nombre=nombre,
+        rut=rut,
+        fecha_nacimiento=fecha_nac,
+        sexo=sexo,
+        doctor_id=doctor_id
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return {"mensaje": "Paciente creado", "id": nuevo.id}
+
+
 @app.get("/pacientes/{doctor_id}")
 def obtener_pacientes(doctor_id: str):
-    lista = [p for p in pacientes.values() if p["doctor_id"] == doctor_id]
-    return lista
+    db: Session = SessionLocal()
+    lista = db.query(Paciente).filter(Paciente.doctor_id == doctor_id).all()
+    return [
+        {
+            "id": p.id,
+            "nombre": p.nombre,
+            "rut": p.rut,
+            "fecha_nacimiento": str(p.fecha_nacimiento),
+            "sexo": p.sexo.value
+        }
+        for p in lista
+    ]
+
 
 # 🧠 Subir examen de imagen
 @app.post("/examenes")
